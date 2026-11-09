@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Opportunity Finder</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; background: #f6f7f9; color: #1d2330; }
+  header { background: #1f3a5f; color: #fff; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+  header h1 { font-size: 20px; margin: 0; }
+  nav button { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.4); padding: 6px 12px; border-radius: 6px; cursor: pointer; margin-left: 6px; }
+  nav button.active { background: #fff; color: #1f3a5f; }
+  main { padding: 24px; max-width: 1200px; margin: 0 auto; }
+  section { display: none; }
+  section.active { display: block; }
+  .card { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 20px; }
+  h2 { margin-top: 0; font-size: 18px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 10px 0 4px; }
+  input, select, textarea { width: 100%; padding: 8px 10px; border: 1px solid #c9ced8; border-radius: 6px; font-size: 14px; font-family: inherit; }
+  textarea { min-height: 90px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .btn { background: #1f3a5f; color: #fff; border: none; padding: 9px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; margin-top: 12px; }
+  .btn.secondary { background: #e6e9ef; color: #1d2330; }
+  .btn.danger { background: #a23b3b; }
+  .filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .filters select { width: auto; min-width: 150px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; background: #fff; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #e6e9ef; vertical-align: top; }
+  th { background: #f0f2f6; font-size: 13px; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; background: #e6e9ef; margin-right: 4px; }
+  .flag { background: #fff1d6; color: #7a4d00; }
+  .late { background: #ffe0e0; color: #7a1f1f; }
+  .ok { background: #dff5e4; color: #1d5c2e; }
+  .note { font-size: 12px; color: #5a6275; }
+  .empty { color: #5a6275; padding: 20px; text-align: center; }
+  .msg { margin-top: 10px; font-size: 13px; color: #1d5c2e; }
+  a { color: #1f5fa8; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Opportunity Finder</h1>
+  <nav>
+    <button data-view="profile" class="active">Profile</button>
+    <button data-view="add">Add opportunity</button>
+    <button data-view="dashboard">Dashboard</button>
+    <button data-view="later">Later</button>
+    <button data-view="archive">Archive</button>
+    <button data-view="data">Backup</button>
+  </nav>
+</header>
+
+<main>
+
+<!-- PROFILE -->
+<section id="view-profile" class="active">
+  <div class="card">
+    <h2>Your profile</h2>
+    <p class="note">Stored only on this computer. Fill in whenever you're ready. Dates use YYYY-MM format; leave blank if unknown.</p>
+    <form id="profileForm">
+      <div class="grid">
+        <div><label>Current level</label>
+          <select name="currentLevel">
+            <option value="bachelor">Bachelor's</option>
+            <option value="master">Master's</option>
+            <option value="phd">PhD</option>
+            <option value="graduate">Completed degree</option>
+          </select></div>
+        <div><label>Field of study</label><input name="field"></div>
+        <div><label>University and country</label><input name="university"></div>
+        <div><label>Expected graduation (YYYY-MM)</label><input name="graduationDate" placeholder="2027-06"></div>
+        <div><label>Target master's start (YYYY-MM)</label><input name="targetMasterStart" placeholder="2028-09"></div>
+        <div><label>Target PhD start (YYYY-MM)</label><input name="targetPhdStart" placeholder="2031-09"></div>
+        <div><label>Internship start (YYYY-MM)</label><input name="internshipStart" placeholder="2027-06"></div>
+        <div><label>Citizenship (country)</label><input name="citizenship"></div>
+        <div><label>Country of residence</label><input name="residence"></div>
+        <div><label>GPA or grade (with scale)</label><input name="gpa" placeholder="3.4 / 4.0"></div>
+        <div><label>Languages</label><input name="languages" placeholder="English (C1), ..."></div>
+        <div><label>Skills and tools</label><input name="skills"></div>
+      </div>
+      <label>Experience and activities</label>
+      <textarea name="experience"></textarea>
+      <label>Preferences and constraints</label>
+      <textarea name="preferences"></textarea>
+      <button class="btn" type="submit">Save profile</button>
+      <div id="profileMsg" class="msg"></div>
+    </form>
+  </div>
+</section>
+
+<!-- ADD -->
+<section id="view-add">
+  <div class="card">
+    <h2>Add an opportunity</h2>
+    <p class="note">Paste the listing text and fill in the fields you can see. Anything left blank is fine. Rules are applied when you save.</p>
+    <form id="oppForm">
+      <div class="grid">
+        <div><label>Title</label><input name="title" required></div>
+        <div><label>Organization</label><input name="organization"></div>
+        <div><label>Type</label>
+          <select name="type">
+            <option value="scholarship">Scholarship</option>
+            <option value="internship">Internship</option>
+            <option value="job">Job</option>
+            <option value="program">Program</option>
+          </select></div>
+        <div><label>Required level</label>
+          <select name="requiredLevel">
+            <option value="any">Any</option>
+            <option value="bachelor">Bachelor's</option>
+            <option value="master">Master's</option>
+            <option value="phd">PhD</option>
+          </select></div>
+        <div><label>Deadline (YYYY-MM-DD)</label><input name="deadline" type="date"></div>
+        <div><label>Internship start (YYYY-MM)</label><input name="startDate" placeholder="2027-06"></div>
+        <div><label>Eligible countries (comma-separated, blank = open)</label><input name="eligibleCountries"></div>
+        <div><label>Requires a completed degree?</label>
+          <select name="requiresDegree"><option value="no">No</option><option value="yes">Yes</option></select></div>
+        <div><label>Source link</label><input name="link" type="url"></div>
+        <div><label>Status</label>
+          <select name="status">
+            <option value="interested">Interested</option>
+            <option value="applying">Applying</option>
+            <option value="applied">Applied</option>
+            <option value="interview">Interview</option>
+            <option value="accepted">Accepted</option>
+            <option value="rejected">Rejected</option>
+            <option value="skipped">Skipped</option>
+          </select></div>
+      </div>
+      <label>Listing text or notes</label>
+      <textarea name="notes"></textarea>
+      <button class="btn" type="submit">Save opportunity</button>
+      <div id="oppMsg" class="msg"></div>
+    </form>
+  </div>
+</section>
+
+<!-- DASHBOARD / LATER / ARCHIVE -->
+<section id="view-dashboard">
+  <div class="card">
+    <h2>Active opportunities</h2>
+    <div class="filters">
+      <select id="fType"><option value="">All types</option><option value="scholarship">Scholarship</option><option value="internship">Internship</option><option value="job">Job</option><option value="program">Program</option></select>
+      <select id="fLevel"><option value="">All levels</option><option value="any">Any</option><option value="bachelor">Bachelor's</option><option value="master">Master's</option><option value="phd">PhD</option></select>
+      <select id="fStatus"><option value="">All statuses</option><option value="interested">Interested</option><option value="applying">Applying</option><option value="applied">Applied</option><option value="interview">Interview</option><option value="accepted">Accepted</option><option value="rejected">Rejected</option><option value="skipped">Skipped</option></select>
+      <select id="fSort"><option value="deadline">Sort by deadline</option><option value="title">Sort by title</option></select>
+    </div>
+    <div id="dashTable"></div>
+  </div>
+</section>
+
+<section id="view-later">
+  <div class="card">
+    <h2>Later</h2>
+    <p class="note">Hidden for now because the rules say they aren't a fit yet. Each row shows the reason; they move back to Active once the reason no longer applies.</p>
+    <div id="laterTable"></div>
+  </div>
+</section>
+
+<section id="view-archive">
+  <div class="card">
+    <h2>Archive</h2>
+    <p class="note">Deadline passed or excluded by country.</p>
+    <div id="archiveTable"></div>
+  </div>
+</section>
+
+<!-- BACKUP -->
+<section id="view-data">
+  <div class="card">
+    <h2>Backup and restore</h2>
+    <p class="note">Your data is saved in this browser on this computer. Export a backup file regularly, especially before clearing browser data.</p>
+    <button class="btn" id="exportBtn">Export backup (.json)</button>
+    <label>Restore from backup</label>
+    <input type="file" id="importFile" accept="application/json">
+    <button class="btn secondary" id="clearBtn" style="margin-top:12px">Clear all data</button>
+    <div id="dataMsg" class="msg"></div>
+  </div>
+</section>
+
+</main>
+
+<script>
+// ---------- Storage (this browser only) ----------
+const STORE_KEY = "opportunityFinder.v1";
+let state = { profile: {}, opportunities: [] };
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) state = JSON.parse(raw);
+  } catch (e) { console.warn("Could not read saved data", e); }
+  state.profile = state.profile || {};
+  state.opportunities = state.opportunities || [];
+}
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+  catch (e) { console.warn("Could not save data", e); }
+}
+
+// ---------- Helpers ----------
+const LEVEL_RANK = { any: 0, bachelor: 1, graduate: 2, master: 2, phd: 3 };
+const LEVEL_NAME = { any: "Any", bachelor: "Bachelor's", master: "Master's", phd: "PhD", graduate: "Completed degree" };
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const todayISO = () => new Date().toISOString().slice(0, 10);
+function monthsBetween(fromISO, toYM) {
+  // toYM as YYYY-MM; returns months from today to that month (negative if past)
+  if (!toYM) return null;
+  const [y, m] = toYM.split("-").map(Number);
+  const now = new Date();
+  return (y - now.getFullYear()) * 12 + (m - (now.getMonth() + 1));
+}
+function daysUntil(dateISO) {
+  if (!dateISO) return null;
+  const d = new Date(dateISO + "T00:00:00");
+  const now = new Date(); now.setHours(0,0,0,0);
+  return Math.round((d - now) / 86400000);
+}
+
+// ---------- Hard rules ----------
+// Returns { bin: "active" | "later" | "archive", reasons: [...], flags: [...] }
+function applyRules(opp, profile) {
+  const reasons = [];
+  const flags = [];
+  let bin = "active";
+  const cur = LEVEL_RANK[profile.currentLevel || "bachelor"];
+
+  // 2. Deadline gate
+  const dDays = daysUntil(opp.deadline);
+  if (dDays !== null && dDays < 0) {
+    bin = "archive"; reasons.push("Deadline has passed");
+  }
+
+  // 3. Country gate
+  const allowed = (opp.eligibleCountries || []).map(c => c.trim().toLowerCase()).filter(Boolean);
+  if (allowed.length) {
+    const mine = [profile.citizenship, profile.residence].map(c => (c || "").trim().toLowerCase()).filter(Boolean);
+    const ok = mine.some(c => allowed.includes(c));
+    if (mine.length && !ok) {
+      bin = "archive"; reasons.push("Country restriction");
+    }
+  }
+
+  // 1. Level gate
+  const req = opp.requiredLevel || "any";
+  if (LEVEL_RANK[req] > cur) {
+    const target = req === "phd" ? profile.targetPhdStart
+                 : req === "master" ? profile.targetMasterStart
+                 : null;
+    const m = monthsBetween(null, target);
+    if (m === null || m > 12) {
+      if (bin === "active") bin = "later";
+      reasons.push(`Unlock when you reach ${LEVEL_NAME[req]}${target ? " (target " + target + ")" : ""}`);
+    }
+  }
+
+  // 5. Graduation-timing gate
+  if (opp.requiresDegree === "yes" && profile.graduationDate && opp.deadline) {
+    if (profile.graduationDate > opp.deadline.slice(0, 7)) {
+      if (bin === "active") bin = "later";
+      reasons.push("Needs a completed degree before the deadline");
+    }
+  }
+
+  // 4. Internship window
+  if (opp.type === "internship" && opp.startDate && opp.startDate.startsWith("2027") && dDays !== null && dDays >= 0 && dDays <= 60) {
+    flags.push("Closes within 60 days");
+  }
+
+  return { bin, reasons, flags };
+}
+
+function evaluateAll() {
+  return state.opportunities.map(o => ({ opp: o, ...applyRules(o, state.profile) }));
+}
+
+// ---------- Rendering ----------
+function tagsFor(r) {
+  let out = "";
+  r.flags.forEach(f => out += `<span class="tag flag">${esc(f)}</span>`);
+  r.reasons.forEach(x => out += `<span class="tag late">${esc(x)}</span>`);
+  return out;
+}
+
+function rowHTML(r, showReasons) {
+  const o = r.opp;
+  const days = daysUntil(o.deadline);
+  const dl = o.deadline ? `${esc(o.deadline)}${days !== null && days >= 0 ? ` <span class="note">(${days} days)</span>` : ""}` : "<span class=\"note\">none</span>";
+  const link = o.link ? `<a href="${esc(o.link)}" target="_blank" rel="noopener">link</a>` : "";
+  return `<tr>
+    <td><strong>${esc(o.title)}</strong><br><span class="note">${esc(o.organization)}</span></td>
+    <td><span class="tag">${esc(o.type)}</span><span class="tag">${esc(LEVEL_NAME[o.requiredLevel || "any"])}</span></td>
+    <td>${dl}</td>
+    <td>
+      <select data-id="${esc(o.id)}" class="statusSel">
+        ${["interested","applying","applied","interview","accepted","rejected","skipped"].map(s => `<option value="${s}" ${o.status===s?"selected":""}>${s}</option>`).join("")}
+      </select>
+    </td>
+    <td>${showReasons ? tagsFor(r) : r.flags.map(f => `<span class="tag flag">${esc(f)}</span>`).join("")} ${link}</td>
+    <td><button class="btn danger delBtn" data-id="${esc(o.id)}" style="margin:0;padding:4px 8px;font-size:12px">Delete</button></td>
+  </tr>`;
+}
+
+function table(rows, showReasons) {
+  if (!rows.length) return `<div class="empty">Nothing here yet.</div>`;
+  return `<table>
+    <thead><tr><th>Opportunity</th><th>Type / level</th><th>Deadline</th><th>Status</th><th>${showReasons ? "Why" : "Flags"} / link</th><th></th></tr></thead>
+    <tbody>${rows.map(r => rowHTML(r, showReasons)).join("")}</tbody>
+  </table>`;
+}
+
+function sortRows(rows, mode) {
+  return rows.sort((a, b) => {
+    if (mode === "title") return a.opp.title.localeCompare(b.opp.title);
+    const da = a.opp.deadline || "9999-12-31";
+    const db = b.opp.deadline || "9999-12-31";
+    return da.localeCompare(db);
+  });
+}
+
+function renderDashboard() {
+  const all = evaluateAll();
+  const fType = document.getElementById("fType").value;
+  const fLevel = document.getElementById("fLevel").value;
+  const fStatus = document.getElementById("fStatus").value;
+  const sort = document.getElementById("fSort").value;
+  let rows = all.filter(r => r.bin === "active");
+  if (fType) rows = rows.filter(r => r.opp.type === fType);
+  if (fLevel) rows = rows.filter(r => (r.opp.requiredLevel || "any") === fLevel);
+  if (fStatus) rows = rows.filter(r => r.opp.status === fStatus);
+  document.getElementById("dashTable").innerHTML = table(sortRows(rows, sort), false);
+  document.getElementById("laterTable").innerHTML = table(sortRows(all.filter(r => r.bin === "later"), "deadline"), true);
+  document.getElementById("archiveTable").innerHTML = table(sortRows(all.filter(r => r.bin === "archive"), "deadline"), true);
+}
+
+function fillProfileForm() {
+  const form = document.getElementById("profileForm");
+  Object.entries(state.profile).forEach(([k, v]) => {
+    if (form.elements[k]) form.elements[k].value = v;
+  });
+}
+
+// ---------- Navigation ----------
+function show(view) {
+  document.querySelectorAll("nav button").forEach(b => b.classList.toggle("active", b.dataset.view === view));
+  document.querySelectorAll("section").forEach(s => s.classList.toggle("active", s.id === "view-" + view));
+  if (view === "dashboard" || view === "later" || view === "archive") renderDashboard();
+}
+document.querySelectorAll("nav button").forEach(b => b.addEventListener("click", () => show(b.dataset.view)));
+
+// ---------- Events ----------
+document.getElementById("profileForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  state.profile = Object.fromEntries(fd.entries());
+  save();
+  document.getElementById("profileMsg").textContent = "Profile saved.";
+});
+
+document.getElementById("oppForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const data = Object.fromEntries(fd.entries());
+  const opp = {
+    id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random())),
+    title: data.title.trim(),
+    organization: data.organization.trim(),
+    type: data.type,
+    requiredLevel: data.requiredLevel,
+    deadline: data.deadline || "",
+    startDate: data.startDate.trim(),
+    eligibleCountries: data.eligibleCountries.split(",").map(s => s.trim()).filter(Boolean),
+    requiresDegree: data.requiresDegree,
+    link: data.link.trim(),
+    status: data.status,
+    notes: data.notes.trim(),
+    addedOn: todayISO()
+  };
+  state.opportunities.push(opp);
+  save();
+  const r = applyRules(opp, state.profile);
+  const place = r.bin === "active" ? "Active" : r.bin === "later" ? "Later" : "Archive";
+  document.getElementById("oppMsg").textContent = `Saved to ${place}${r.reasons.length ? ": " + r.reasons.join("; ") : ""}.`;
+  e.target.reset();
+});
+
+["fType","fLevel","fStatus","fSort"].forEach(id => document.getElementById(id).addEventListener("change", renderDashboard));
+
+document.addEventListener("change", e => {
+  if (e.target.classList.contains("statusSel")) {
+    const opp = state.opportunities.find(o => o.id === e.target.dataset.id);
+    if (opp) { opp.status = e.target.value; save(); }
+  }
+});
+
+document.addEventListener("click", e => {
+  if (e.target.classList.contains("delBtn")) {
+    if (!confirm("Delete this opportunity?")) return;
+    state.opportunities = state.opportunities.filter(o => o.id !== e.target.dataset.id);
+    save();
+    renderDashboard();
+  }
+});
+
+document.getElementById("exportBtn").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "opportunity-finder-backup-" + todayISO() + ".json";
+  a.click();
+  document.getElementById("dataMsg").textContent = "Backup downloaded.";
+});
+
+document.getElementById("importFile").addEventListener("change", async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const parsed = JSON.parse(await file.text());
+    if (!parsed.opportunities || !parsed.profile) throw new Error("Not a valid backup file");
+    state = parsed;
+    save();
+    fillProfileForm();
+    document.getElementById("dataMsg").textContent = "Restored " + state.opportunities.length + " opportunities.";
+  } catch (err) {
+    document.getElementById("dataMsg").textContent = "Could not restore: " + err.message;
+  }
+});
+
+document.getElementById("clearBtn").addEventListener("click", () => {
+  if (!confirm("Clear all profile and opportunity data in this browser?")) return;
+  state = { profile: {}, opportunities: [] };
+  save();
+  fillProfileForm();
+  document.getElementById("dataMsg").textContent = "All data cleared.";
+});
+
+// ---------- Init ----------
+load();
+fillProfileForm();
+</script>
+</body>
+</html>

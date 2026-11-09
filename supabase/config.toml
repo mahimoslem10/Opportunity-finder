@@ -1,0 +1,5 @@
+[functions.scrape-source]
+verify_jwt = false
+
+[functions.fetch-details]
+verify_jwt = false

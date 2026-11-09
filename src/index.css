@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --c-surface: 255 255 255;
+    --c-on-brand: 255 255 255;
+    --c-gray-50: 249 250 251;
+    --c-gray-100: 243 244 246;
+    --c-gray-200: 229 231 235;
+    --c-gray-300: 138 143 153;
+    --c-gray-400: 107 114 128;
+    --c-gray-500: 107 114 128;
+    --c-gray-600: 75 85 99;
+    --c-gray-700: 55 65 81;
+    --c-gray-800: 31 41 55;
+    --c-gray-900: 17 24 39;
+    --c-navy-50: 240 244 249;
+    --c-navy-100: 217 226 239;
+    --c-navy-200: 179 197 223;
+    --c-navy-300: 125 153 194;
+    --c-navy-400: 77 111 160;
+    --c-navy-500: 46 79 127;
+    --c-navy-600: 31 58 95;
+    --c-navy-700: 26 51 84;
+    --c-navy-800: 21 42 69;
+    --c-navy-900: 17 32 54;
+  }
+
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+    --c-surface: 30 41 59;
+    --c-on-brand: 11 18 32;
+    --c-gray-50: 15 23 42;
+    --c-gray-100: 31 43 62;
+    --c-gray-200: 51 65 85;
+    --c-gray-300: 100 116 139;
+    --c-gray-400: 148 163 184;
+    --c-gray-500: 148 163 184;
+    --c-gray-600: 203 213 225;
+    --c-gray-700: 226 232 240;
+    --c-gray-800: 241 245 249;
+    --c-gray-900: 248 250 252;
+    --c-navy-50: 20 35 58;
+    --c-navy-100: 26 46 77;
+    --c-navy-200: 35 64 107;
+    --c-navy-300: 53 89 140;
+    --c-navy-400: 90 132 191;
+    --c-navy-500: 106 155 219;
+    --c-navy-600: 106 155 219;
+    --c-navy-700: 191 219 254;
+    --c-navy-800: 219 234 254;
+    --c-navy-900: 11 18 32;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply font-sans antialiased text-gray-900 bg-gray-50;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-duration: 200ms;
+    transition-timing-function: ease-in-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition: none !important;
+    }
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "projectId": "72072176",
+  "functions": {
+    "fetch-details": {
+      "hasChanged": false,
+      "hash": "745860179b0a858b6e5d16ccc17339b5d8d52fc568a1a5940d0b5d957c42cb8d"
+    },
+    "scrape-source": {
+      "hasChanged": false,
+      "hash": "ce17847aabdd6631022a944fc7822f9e6a074f9451c4c209a0073bcf2ad4d6a7"
+    }
+  }
+}
