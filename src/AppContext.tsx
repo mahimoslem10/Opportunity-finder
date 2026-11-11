@@ -43,7 +43,7 @@ interface AppContextValue {
   ) => void;
   addSource: (source: Omit<Source, 'id' | 'addedOn'>) => Source;
   deleteSource: (id: string) => void;
-  scrapeSource: (source: Source) => Promise<{ found: number; duplicates: number; error?: string }>;
+  scrapeSource: (source: Source) => Promise<{ found: number; duplicates: number; checkedAt?: string; error?: string }>;
   uploadDocument: (file: File, label: string) => Promise<{ error?: string }>;
   deleteDocument: (id: string) => void;
   exportData: () => string;
@@ -177,7 +177,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const scrapeSource = useCallback(
     async (
       source: Source
-    ): Promise<{ found: number; duplicates: number; error?: string }> => {
+    ): Promise<{ found: number; duplicates: number; checkedAt?: string; error?: string }> => {
       try {
         const { data: sessionData } = await supabase.auth.getSession();
         const token = sessionData.session?.access_token;
@@ -257,6 +257,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return {
           found: newOpps.length,
           duplicates: scrapedItems.length - newOpps.length,
+          checkedAt: new Date().toISOString(),
         };
       } catch {
         return { found: 0, duplicates: 0, error: "Could not connect to the scraping service." };

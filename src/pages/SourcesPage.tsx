@@ -16,7 +16,7 @@ export function SourcesPage() {
   const [scrapingSource, setScrapingSource] = useState<string | null>(null);
   const [scrapeAllLoading, setScrapeAllLoading] = useState(false);
   const [scrapeResults, setScrapeResults] = useState<
-    Record<string, { found: number; duplicates: number; error?: string }>
+    Record<string, { found: number; duplicates: number; checkedAt?: string; error?: string }>
   >({});
 
   const handleAddSource = async (e: React.FormEvent) => {
@@ -176,7 +176,7 @@ export function SourcesPage() {
                       >
                         {result.error
                           ? result.error
-                          : `${result.found} new item${result.found !== 1 ? 's' : ''} found${result.duplicates ? `, ${result.duplicates} already saved` : ''}`}
+                          : `${result.found} new item${result.found !== 1 ? 's' : ''} found${result.duplicates ? `, ${result.duplicates} already saved` : ''}${result.checkedAt ? ` · checked ${new Date(result.checkedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}`}
                       </p>
                     )}
                   </div>
