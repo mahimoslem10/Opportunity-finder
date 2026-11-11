@@ -28,8 +28,13 @@ import {
 } from '../ai/storage';
 import {
   isAIConfigured,
+  isGeminiConfigured,
   buildPrompt,
+  buildPersonalFitPrompt,
   callAIFitCheck,
+  callGeminiFitCheck,
+  createApprovalToken,
+  GEMINI_MODEL,
   type AIOpportunityPayload,
 } from '../ai/aiClient';
 import { OpportunityDetail } from './OpportunityDetail';
@@ -55,10 +60,12 @@ const FIT_LABELS: Record<string, string> = {
 
 function AIPreviewModal({
   promptText,
+  isGemini,
   onSend,
   onCancel,
 }: {
   promptText: string;
+  isGemini: boolean;
   onSend: () => void;
   onCancel: () => void;
 }) {
@@ -66,7 +73,7 @@ function AIPreviewModal({
   return (
     <Dialog labelledBy={titleId} onClose={onCancel} className="max-w-2xl max-h-[80vh]">
       <div className="flex items-center justify-between p-4 border-b border-gray-100">
-        <h2 id={titleId} className="font-semibold text-gray-900 text-sm">Preview: what will be sent to the AI</h2>
+        <h2 id={titleId} className="font-semibold text-gray-900 text-sm">Review before sending to AI</h2>
           <button
             onClick={onCancel}
             className="text-gray-400 hover:text-gray-600 p-1"
@@ -75,7 +82,20 @@ function AIPreviewModal({
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {isGemini && (
+            <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
+              <p className="text-xs font-semibold text-amber-800 mb-1">Approval required</p>
+              <p className="text-xs text-amber-900">This request includes your personal profile information. It will be sent to:</p>
+              <ul className="text-xs text-amber-900 mt-1 space-y-0.5 list-disc pl-4">
+                <li>Provider: Google Gemini (server-side)</li>
+                <li>Model: {GEMINI_MODEL}</li>
+                <li>Purpose: Evaluate how well you fit this opportunity</li>
+                <li>Data: Your education level, field, country, languages, skills, and the opportunity details below</li>
+              </ul>
+              <p className="text-xs text-amber-900 mt-1.5">This approval applies only to this request. It will not authorize future requests.</p>
+            </div>
+          )}
           <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono bg-gray-50 rounded-lg p-3 border border-gray-100">
             {promptText}
           </pre>
@@ -92,7 +112,7 @@ function AIPreviewModal({
             className="px-4 py-2 rounded-lg bg-navy-600 text-on-brand hover:bg-navy-700 text-sm font-medium transition-colors flex items-center gap-1.5"
           >
             <Send className="w-4 h-4" />
-            Send to AI
+            {isGemini ? 'Approve and send' : 'Send to AI'}
           </button>
         </div>
     </Dialog>
@@ -105,7 +125,7 @@ export function OpportunityList({
   showReasons,
 }: OpportunityListProps) {
   const { updateOpportunityStatus, deleteOpportunity } = useApp();
-  const [aiPreview, setAiPreview] = useState<{ prompt: string; opp: Opportunity } | null>(null);
+  const [aiPreview, setAiPreview] = useState<{ prompt: string; opp: Opportunity; payload: AIOpportunityPayload; profile: AIProfileCard } | null>(null);
   const [aiLoading, setAiLoading] = useState<string | null>(null);
   const [aiResults, setAiResults] = useState<Record<string, AIFitResult>>({});
   const [aiError, setAiError] = useState<string | null>(null);
@@ -138,35 +158,52 @@ export function OpportunityList({
       funding: fundingMatch ? fundingMatch[1].trim() : '',
       description: opp.description || '',
     };
-    const prompt = buildPrompt(aiProfile, payload);
-    setAiPreview({ prompt, opp });
+    const prompt = isGeminiConfigured(settings)
+      ? buildPersonalFitPrompt(aiProfile, payload)
+      : buildPrompt(aiProfile, payload);
+    setAiPreview({ prompt, opp, payload, profile: aiProfile });
   };
 
   const handleAISend = async () => {
     if (!aiPreview) return;
-    const opp = aiPreview.opp;
-    setAiPreview(null);
-    setAiLoading(opp.id);
-    setAiError(null);
-    try {
-      const settings = loadAISettings();
-      const aiProfile = buildAIProfile(profile);
-      const fundingMatch = opp.notes?.match(/Funding:\s*([^.]+)/i);
-      const payload: AIOpportunityPayload = {
-        title: opp.title,
-        organization: opp.organization,
-        type: TYPE_LABELS[opp.type],
-        level: LEVEL_NAME[opp.requiredLevel || 'any'],
-        deadline: opp.deadline || '',
-        funding: fundingMatch ? fundingMatch[1].trim() : '',
-        description: opp.description || '',
-      };
-      const result = await callAIFitCheck(settings, aiProfile, payload);
-      setAiResults((prev) => ({ ...prev, [opp.id]: result }));
-    } catch (err) {
-      setAiError(err instanceof Error ? err.message : 'AI request failed');
-    } finally {
-      setAiLoading(null);
+    const { opp, payload, profile: aiProfile, prompt } = aiPreview;
+    const settings = loadAISettings();
+
+    if (isGeminiConfigured(settings)) {
+      const { id: tokenId, error: tokenError } = await createApprovalToken({
+        provider: 'gemini',
+        model: GEMINI_MODEL,
+        task: 'fit-check',
+        personalData: true,
+        prompt,
+      });
+      if (tokenError || !tokenId) {
+        setAiError(tokenError || 'Could not create approval. Please try again.');
+        return;
+      }
+      setAiPreview(null);
+      setAiLoading(opp.id);
+      setAiError(null);
+      try {
+        const result = await callGeminiFitCheck(aiProfile, payload, tokenId);
+        setAiResults((prev) => ({ ...prev, [opp.id]: result }));
+      } catch (err) {
+        setAiError(err instanceof Error ? err.message : 'AI request failed');
+      } finally {
+        setAiLoading(null);
+      }
+    } else {
+      setAiPreview(null);
+      setAiLoading(opp.id);
+      setAiError(null);
+      try {
+        const result = await callAIFitCheck(settings, aiProfile, payload);
+        setAiResults((prev) => ({ ...prev, [opp.id]: result }));
+      } catch (err) {
+        setAiError(err instanceof Error ? err.message : 'AI request failed');
+      } finally {
+        setAiLoading(null);
+      }
     }
   };
 
@@ -196,6 +233,7 @@ export function OpportunityList({
       {aiPreview && (
         <AIPreviewModal
           promptText={aiPreview.prompt}
+          isGemini={isGeminiConfigured(loadAISettings())}
           onSend={handleAISend}
           onCancel={() => setAiPreview(null)}
         />

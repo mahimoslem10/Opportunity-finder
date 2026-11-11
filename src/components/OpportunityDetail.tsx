@@ -37,8 +37,13 @@ import {
 } from '../ai/storage';
 import {
   isAIConfigured,
+  isGeminiConfigured,
   buildPrompt,
+  buildPersonalFitPrompt,
   callAIFitCheck,
+  callGeminiFitCheck,
+  createApprovalToken,
+  GEMINI_MODEL,
   type AIOpportunityPayload,
 } from '../ai/aiClient';
 
@@ -105,9 +110,12 @@ export function OpportunityDetail({ opp, profile, onClose }: OpportunityDetailPr
 
   // AI state
   const [aiPreview, setAiPreview] = useState<string | null>(null);
+  const [aiPendingPayload, setAiPendingPayload] = useState<{ profile: AIProfileCard; payload: AIOpportunityPayload } | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState<AIFitResult | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [aiApprovalError, setAiApprovalError] = useState<string | null>(null);
+  const [aiApproving, setAiApproving] = useState(false);
   const titleId = useId();
   const previewTitleId = useId();
   const typeSelectId = useId();
@@ -177,13 +185,14 @@ export function OpportunityDetail({ opp, profile, onClose }: OpportunityDetailPr
 
   const handleAIClick = () => {
     setAiError(null);
+    setAiApprovalError(null);
     const settings: AISettings = loadAISettings();
     if (!settings.enabled) {
       setAiError('AI is turned off. Go to Settings and turn it on first.');
       return;
     }
     if (!isAIConfigured(settings)) {
-      setAiError('AI is not configured. Go to Settings to add your endpoint and API key.');
+      setAiError('AI is not configured. Go to Settings to set up your AI provider.');
       return;
     }
     const aiProfile: AIProfileCard = buildAIProfile(data.profile);
@@ -197,34 +206,63 @@ export function OpportunityDetail({ opp, profile, onClose }: OpportunityDetailPr
       funding,
       description,
     };
-    const prompt = buildPrompt(aiProfile, payload);
-    setAiPreview(prompt);
+    if (isGeminiConfigured(settings)) {
+      const prompt = buildPersonalFitPrompt(aiProfile, payload);
+      setAiPendingPayload({ profile: aiProfile, payload });
+      setAiPreview(prompt);
+    } else {
+      const prompt = buildPrompt(aiProfile, payload);
+      setAiPendingPayload({ profile: aiProfile, payload });
+      setAiPreview(prompt);
+    }
   };
 
   const handleAISend = async () => {
-    if (!aiPreview) return;
-    setAiPreview(null);
-    setAiLoading(true);
-    setAiError(null);
-    try {
-      const settings = loadAISettings();
-      const aiProfile = buildAIProfile(data.profile);
-      const description = opp.description || (fetchedSections ? fetchedSections.map(s => `${s.heading}: ${s.body}`).join('\n') : '');
-      const payload: AIOpportunityPayload = {
-        title: opp.title,
-        organization: opp.organization,
-        type: TYPE_LABELS[opp.type],
-        level: LEVEL_NAME[opp.requiredLevel || 'any'],
-        deadline: opp.deadline || '',
-        funding,
-        description,
-      };
-      const result = await callAIFitCheck(settings, aiProfile, payload);
-      setAiResult(result);
-    } catch (err) {
-      setAiError(err instanceof Error ? err.message : 'AI request failed');
-    } finally {
-      setAiLoading(false);
+    if (!aiPreview || !aiPendingPayload) return;
+    const settings = loadAISettings();
+    const { profile: aiProfile, payload } = aiPendingPayload;
+
+    if (isGeminiConfigured(settings)) {
+      // Gemini path: create approval token first, then call server.
+      setAiApproving(true);
+      setAiApprovalError(null);
+      const { id: tokenId, error: tokenError } = await createApprovalToken({
+        provider: 'gemini',
+        model: GEMINI_MODEL,
+        task: 'fit-check',
+        personalData: true,
+        prompt: aiPreview,
+      });
+      setAiApproving(false);
+      if (tokenError || !tokenId) {
+        setAiApprovalError(tokenError || 'Could not create approval.');
+        return;
+      }
+
+      setAiPreview(null);
+      setAiLoading(true);
+      setAiError(null);
+      try {
+        const result = await callGeminiFitCheck(aiProfile, payload, tokenId);
+        setAiResult(result);
+      } catch (err) {
+        setAiError(err instanceof Error ? err.message : 'AI request failed');
+      } finally {
+        setAiLoading(false);
+      }
+    } else {
+      // OpenAI-compatible path: direct call with browser-stored key.
+      setAiPreview(null);
+      setAiLoading(true);
+      setAiError(null);
+      try {
+        const result = await callAIFitCheck(settings, aiProfile, payload);
+        setAiResult(result);
+      } catch (err) {
+        setAiError(err instanceof Error ? err.message : 'AI request failed');
+      } finally {
+        setAiLoading(false);
+      }
     }
   };
 
@@ -405,27 +443,47 @@ export function OpportunityDetail({ opp, profile, onClose }: OpportunityDetailPr
             </div>
           )}
 
+          {aiApprovalError && (
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <span>{aiApprovalError}</span>
+            </div>
+          )}
+
           {/* AI preview modal */}
           {aiPreview && (
-            <Dialog labelledBy={previewTitleId} onClose={() => setAiPreview(null)} zIndex="z-[60]" className="max-w-2xl max-h-[80vh]">
+            <Dialog labelledBy={previewTitleId} onClose={() => { setAiPreview(null); setAiPendingPayload(null); }} zIndex="z-[60]" className="max-w-2xl max-h-[80vh]">
                 <div className="flex items-center justify-between p-4 border-b border-gray-100">
-                  <h3 id={previewTitleId} className="font-semibold text-gray-900 text-sm">Preview: what will be sent to the AI</h3>
-                  <button onClick={() => setAiPreview(null)} className="text-gray-400 hover:text-gray-600 p-1" aria-label="Close">
+                  <h3 id={previewTitleId} className="font-semibold text-gray-900 text-sm">Review before sending to AI</h3>
+                  <button onClick={() => { setAiPreview(null); setAiPendingPayload(null); }} className="text-gray-400 hover:text-gray-600 p-1" aria-label="Close">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
-                <div className="flex-1 overflow-y-auto p-4">
+                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  {isGeminiConfigured(loadAISettings()) && (
+                    <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
+                      <p className="text-xs font-semibold text-amber-800 mb-1">Approval required</p>
+                      <p className="text-xs text-amber-900">This request includes your personal profile information. It will be sent to:</p>
+                      <ul className="text-xs text-amber-900 mt-1 space-y-0.5 list-disc pl-4">
+                        <li>Provider: Google Gemini (server-side)</li>
+                        <li>Model: {GEMINI_MODEL}</li>
+                        <li>Purpose: Evaluate how well you fit this opportunity</li>
+                        <li>Data: Your education level, field, country, languages, skills, and the opportunity details below</li>
+                      </ul>
+                      <p className="text-xs text-amber-900 mt-1.5">This approval applies only to this request. It will not authorize future requests.</p>
+                    </div>
+                  )}
                   <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono bg-gray-50 rounded-lg p-3 border border-gray-100">
                     {aiPreview}
                   </pre>
                 </div>
                 <div className="flex gap-2 p-4 border-t border-gray-100">
-                  <button onClick={() => setAiPreview(null)} className="px-4 py-2 rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200 text-sm font-medium transition-colors">
+                  <button onClick={() => { setAiPreview(null); setAiPendingPayload(null); }} className="px-4 py-2 rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200 text-sm font-medium transition-colors">
                     Cancel
                   </button>
-                  <button onClick={handleAISend} className="px-4 py-2 rounded-lg bg-navy-600 text-on-brand hover:bg-navy-700 text-sm font-medium transition-colors flex items-center gap-1.5">
-                    <Send className="w-4 h-4" />
-                    Send to AI
+                  <button onClick={handleAISend} disabled={aiApproving} className="px-4 py-2 rounded-lg bg-navy-600 text-on-brand hover:bg-navy-700 text-sm font-medium transition-colors flex items-center gap-1.5 disabled:opacity-50">
+                    {aiApproving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    {isGeminiConfigured(loadAISettings()) ? 'Approve and send' : 'Send to AI'}
                   </button>
                 </div>
             </Dialog>
