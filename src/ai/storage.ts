@@ -1,7 +1,10 @@
 import type { Profile } from '../types';
 
+export type AIProvider = 'openai-compatible' | 'gemini';
+
 export interface AISettings {
   enabled: boolean;
+  provider: AIProvider;
   endpoint: string;
   apiKey: string;
   model: string;
@@ -36,6 +39,7 @@ const AI_PROFILE_KEY = 'opportunityFinder.aiProfile';
 
 export const DEFAULT_AI_SETTINGS: AISettings = {
   enabled: false,
+  provider: 'openai-compatible',
   endpoint: '',
   apiKey: '',
   model: '',
@@ -64,6 +68,7 @@ export function loadAISettings(): AISettings {
       const parsed = JSON.parse(raw);
       return {
         enabled: parsed.enabled ?? false,
+        provider: parsed.provider ?? 'openai-compatible',
         endpoint: parsed.endpoint ?? '',
         apiKey: parsed.apiKey ?? '',
         model: parsed.model ?? '',

@@ -8,6 +8,10 @@
     "scrape-source": {
       "hasChanged": false,
       "hash": "ce52e5efac57187ff93567b93d790b78608f3b3e610256ecc290b34edcd2eb9e"
+    },
+    "gemini-query": {
+      "hasChanged": false,
+      "hash": "9ac09dc4509c6db6b4011ffd4b09433cb77e527a260543c87cbbfe85262a1411"
     }
   }
 }

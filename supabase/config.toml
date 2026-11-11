@@ -3,3 +3,6 @@ verify_jwt = true
 
 [functions.fetch-details]
 verify_jwt = false
+
+[functions.gemini-query]
+verify_jwt = true
