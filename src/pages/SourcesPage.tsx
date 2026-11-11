@@ -34,7 +34,7 @@ export function SourcesPage() {
     const result = await scrapeSource(newSource);
     setScrapingSource(null);
     if (result.error) {
-      setSourceMsg(`Source added, but couldn't fetch: ${result.error}`);
+      setSourceMsg(`Source added. ${result.error}`);
     } else if (result.found === 0) {
       setSourceMsg('Source added. No new items found.');
     } else {
