@@ -166,9 +166,23 @@ function extractHtmlItems(html: string, baseUrl: string): ScrapedItem[] {
   return items;
 }
 
+// Public scraping is disabled: this endpoint has no authentication or URL restrictions.
+const SCRAPING_ENABLED = false;
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
+  }
+
+  if (!SCRAPING_ENABLED) {
+    return new Response(
+      JSON.stringify({
+        items: [],
+        sourceType: "html",
+        error: "Source fetching is temporarily unavailable.",
+      } as ScrapeResponse),
+      { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 
   try {

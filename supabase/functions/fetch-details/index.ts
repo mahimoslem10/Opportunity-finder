@@ -205,9 +205,24 @@ async function tryFetch(
   return result;
 }
 
+// Public fetching is disabled: this endpoint has no authentication or URL restrictions.
+const DETAILS_FETCH_ENABLED = false;
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
+  }
+
+  if (!DETAILS_FETCH_ENABLED) {
+    return new Response(
+      JSON.stringify({
+        title: "",
+        content: "",
+        sections: [],
+        error: "Detail fetching is temporarily unavailable.",
+      } as FetchDetailsResponse),
+      { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 
   try {
