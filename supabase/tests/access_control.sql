@@ -51,17 +51,18 @@ BEGIN
   END IF;
   SELECT count(*) INTO n FROM public.sources WHERE id = new_id;
   IF n <> 1 THEN RAISE EXCEPTION 'FAIL: owner cannot see own row'; END IF;
-  -- Only A's own test row is visible; existing unowned rows stay hidden
-  SELECT count(*) INTO n FROM public.sources;
-  IF n <> 1 THEN RAISE EXCEPTION 'FAIL: owner sees % rows, expected only own test row', n; END IF;
+  -- Owner sees only rows it owns; unowned rows are never visible to any account
+  SELECT count(*) INTO n FROM public.sources WHERE user_id IS DISTINCT FROM user_a;
+  IF n <> 0 THEN RAISE EXCEPTION 'FAIL: owner can see rows it does not own'; END IF;
   RESET ROLE;
 
   -- 3. Account B cannot see, change or delete A's row
   PERFORM set_config('request.jwt.claims', json_build_object('sub', user_b, 'role', 'authenticated')::text, true);
   PERFORM set_config('request.jwt.claim.sub', user_b::text, true);
   SET LOCAL ROLE authenticated;
+  SELECT count(*) INTO n FROM public.sources;
+  IF n <> 0 THEN RAISE EXCEPTION 'FAIL: other account can read private rows'; END IF;
   SELECT count(*) INTO n FROM public.sources WHERE id = new_id;
-  IF n <> 0 THEN RAISE EXCEPTION 'FAIL: other account can read a private row'; END IF;
   UPDATE public.sources SET name = 'hijacked' WHERE id = new_id;
   GET DIAGNOSTICS n = ROW_COUNT;
   IF n <> 0 THEN RAISE EXCEPTION 'FAIL: other account updated a private row'; END IF;
