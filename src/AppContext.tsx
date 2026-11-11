@@ -43,7 +43,7 @@ interface AppContextValue {
   ) => void;
   addSource: (source: Omit<Source, 'id' | 'addedOn'>) => Source;
   deleteSource: (id: string) => void;
-  scrapeSource: (source: Source) => Promise<{ found: number; error?: string }>;
+  scrapeSource: (source: Source) => Promise<{ found: number; duplicates: number; error?: string }>;
   uploadDocument: (file: File, label: string) => Promise<{ error?: string }>;
   deleteDocument: (id: string) => void;
   exportData: () => string;
@@ -56,7 +56,7 @@ const AppContext = createContext<AppContextValue | null>(null);
 export function AppProvider({ children }: { children: ReactNode }) {
   migrateOldV1();
   const [data, setData] = useState<AppData>(() => loadData());
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
 
   const persist = useCallback((updater: (prev: AppData) => AppData) => {
     setData((prev) => {
@@ -177,12 +177,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const scrapeSource = useCallback(
     async (
       source: Source
-    ): Promise<{ found: number; error?: string }> => {
+    ): Promise<{ found: number; duplicates: number; error?: string }> => {
       try {
         const { data: sessionData } = await supabase.auth.getSession();
         const token = sessionData.session?.access_token;
         if (!token) {
-          return { found: 0, error: 'Your sign-in has expired. Please sign in again.' };
+          return { found: 0, duplicates: 0, error: 'Your sign-in has expired. Please sign in again.' };
         }
 
         const fnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/scrape-source`;
@@ -202,11 +202,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (!res.ok || !json) {
           return {
             found: 0,
+            duplicates: 0,
             error: json?.error || `Fetch failed (HTTP ${res.status}).`,
           };
         }
         if (json.error) {
-          return { found: 0, error: json.error };
+          return { found: 0, duplicates: 0, error: json.error };
         }
 
         const scrapedItems: Array<{
@@ -216,7 +217,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }> = json.items || [];
 
         if (scrapedItems.length === 0) {
-          return { found: 0, error: "No items found at this URL." };
+          return { found: 0, duplicates: 0, error: "No items found at this URL." };
         }
 
         const existingLinks = new Set(
@@ -253,9 +254,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }));
         }
 
-        return { found: newOpps.length };
+        return {
+          found: newOpps.length,
+          duplicates: scrapedItems.length - newOpps.length,
+        };
       } catch {
-        return { found: 0, error: "Could not connect to the scraping service." };
+        return { found: 0, duplicates: 0, error: "Could not connect to the scraping service." };
       }
     },
     [persist, data.opportunities]

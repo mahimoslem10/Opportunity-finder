@@ -16,7 +16,7 @@ export function SourcesPage() {
   const [scrapingSource, setScrapingSource] = useState<string | null>(null);
   const [scrapeAllLoading, setScrapeAllLoading] = useState(false);
   const [scrapeResults, setScrapeResults] = useState<
-    Record<string, { found: number; error?: string }>
+    Record<string, { found: number; duplicates: number; error?: string }>
   >({});
 
   const handleAddSource = async (e: React.FormEvent) => {
@@ -36,7 +36,7 @@ export function SourcesPage() {
     if (result.error) {
       setSourceMsg(`Source added. ${result.error}`);
     } else if (result.found === 0) {
-      setSourceMsg('Source added. No new items found.');
+      setSourceMsg(`Source added. No new items found.${result.duplicates ? ` ${result.duplicates} already saved.` : ''}`);
     } else {
       setSourceMsg(`Source added. Found ${result.found} new item${result.found !== 1 ? 's' : ''}!`);
     }
@@ -176,7 +176,7 @@ export function SourcesPage() {
                       >
                         {result.error
                           ? result.error
-                          : `${result.found} new item${result.found !== 1 ? 's' : ''} found`}
+                          : `${result.found} new item${result.found !== 1 ? 's' : ''} found${result.duplicates ? `, ${result.duplicates} already saved` : ''}`}
                       </p>
                     )}
                   </div>
