@@ -191,6 +191,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }),
         });
 
+        if (res.status === 503) {
+          return {
+            found: 0,
+            error: 'Automatic source fetching is temporarily unavailable while security improvements are being completed. Your saved sources and previously collected opportunities are safe. You can continue using existing saved data.',
+          };
+        }
+
         if (!res.ok) {
           return { found: 0, error: `Scrape failed (HTTP ${res.status})` };
         }
