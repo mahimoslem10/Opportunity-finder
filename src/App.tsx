@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
+import { Loader2, Telescope } from 'lucide-react';
 import { AppProvider } from './AppContext';
+import { AuthProvider, useAuth } from './AuthContext';
 import { Layout, type ViewName } from './components/Layout';
+import { SignInPage } from './pages/SignInPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { DashboardPage, LaterPage, ArchivePage } from './pages/DashboardPages';
 import { SourcesPage } from './pages/SourcesPage';
@@ -10,6 +13,33 @@ import { SettingsPage } from './pages/SettingsPage';
 import { GapAnalysisPage } from './pages/GapAnalysisPage';
 
 function App() {
+  return (
+    <AuthProvider>
+      <AuthGate />
+    </AuthProvider>
+  );
+}
+
+function AuthGate() {
+  const { session, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex items-center gap-2 text-navy-700">
+          <Telescope className="w-5 h-5" />
+          <Loader2 className="w-4 h-4 animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) return <SignInPage />;
+
+  return <Finder />;
+}
+
+function Finder() {
   const [view, setView] = useState<ViewName>(() => {
     const saved = localStorage.getItem('oppFinder.lastView') as ViewName | null;
     return saved && saved !== 'add' ? saved : 'dashboard';

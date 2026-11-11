@@ -10,7 +10,9 @@ import {
   Telescope,
   Settings,
   Target,
+  LogOut,
 } from 'lucide-react';
+import { useAuth } from '@/AuthContext';
 import { useInstallPrompt } from '../useInstallPrompt';
 import { ThemeSwitcher } from './ThemeSwitcher';
 
@@ -51,6 +53,7 @@ interface LayoutProps {
 
 export function Layout({ currentView, onNavigate, children }: LayoutProps) {
   const { canInstall, promptInstall } = useInstallPrompt();
+  const { signOut } = useAuth();
 
   const sourcesItem: NavItem = {
     view: 'sources',
@@ -85,6 +88,14 @@ export function Layout({ currentView, onNavigate, children }: LayoutProps) {
                 <span className="sm:hidden">Install</span>
               </button>
             )}
+            <button
+              onClick={signOut}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-on-brand/10 hover:bg-on-brand/20 border border-on-brand/30 text-sm font-medium transition-colors"
+              title="Sign out"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Sign out</span>
+            </button>
           </div>
         </div>
 
