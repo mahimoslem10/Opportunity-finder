@@ -287,7 +287,7 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => null);
     const target = validateSourceUrl(body?.url);
     if (!target) {
-      return json({ error: "This source address is not on the approved list." }, 403);
+      return json({ error: "Automatic fetching is not available for this source yet." }, 403);
     }
 
     const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();

@@ -72,7 +72,7 @@ export function SourcesPage() {
     setScrapingSource(null);
     setScrapeAllLoading(false);
     if (errors > 0 && totalFound === 0) {
-      setSourceMsg('Could not fetch from any source.');
+      setSourceMsg(`Could not fetch ${errors} of ${data.sources.length} source${data.sources.length !== 1 ? 's' : ''}. See each source for details.`);
     } else if (totalFound === 0) {
       setSourceMsg('No new items found from any source.');
     } else {
