@@ -26,6 +26,7 @@ import {
   withDocumentIds,
 } from './storage';
 import { classifyScrapedItem } from './rules';
+import { supabase } from '@/lib/supabase';
 
 interface AppContextValue {
   data: AppData;
@@ -178,12 +179,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
       source: Source
     ): Promise<{ found: number; error?: string }> => {
       try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (!token) {
+          return { found: 0, error: 'Your sign-in has expired. Please sign in again.' };
+        }
+
         const fnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/scrape-source`;
         const res = await fetch(fnUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             url: source.url,
@@ -191,18 +198,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }),
         });
 
-        if (res.status === 503) {
+        const json = await res.json().catch(() => null);
+        if (!res.ok || !json) {
           return {
             found: 0,
-            error: 'Automatic source fetching is temporarily unavailable while security improvements are being completed. Your saved sources and previously collected opportunities are safe. You can continue using existing saved data.',
+            error: json?.error || `Fetch failed (HTTP ${res.status}).`,
           };
         }
-
-        if (!res.ok) {
-          return { found: 0, error: `Scrape failed (HTTP ${res.status})` };
-        }
-
-        const json = await res.json();
         if (json.error) {
           return { found: 0, error: json.error };
         }
