@@ -6,12 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-const ALLOWED_HOSTS = new Set([
-  "opportunitiescircle.com",
-  "www.opportunitiescircle.com",
-  "opportunitydesk.org",
-  "www.opportunitydesk.org",
-]);
 const TIMEOUT_MS = 10_000;
 const MAX_BYTES = 2_000_000;
 const MAX_REDIRECTS = 3;
@@ -45,7 +39,7 @@ function validateSourceUrl(raw: unknown): URL | null {
   if (url.protocol !== "https:") return null;
   if (url.username || url.password) return null;
   if (url.port && url.port !== "443") return null;
-  if (!ALLOWED_HOSTS.has(url.hostname.toLowerCase())) return null;
+  if (url.hostname.toLowerCase() === "localhost" || !url.hostname.includes(".")) return null;
   return url;
 }
 
@@ -127,7 +121,7 @@ async function fetchSource(start: URL): Promise<{ body: string; contentType: str
     for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
       if (hop > 0) {
         const allowed = validateSourceUrl(current.href);
-        if (!allowed) throw new Error("redirect left the approved list");
+        if (!allowed) throw new Error("redirect to an invalid address");
         current = allowed;
       }
       await assertPublicHost(current.hostname);
@@ -287,7 +281,7 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => null);
     const target = validateSourceUrl(body?.url);
     if (!target) {
-      return json({ error: "Automatic fetching is not available for this source yet." }, 403);
+      return json({ error: "Please enter a secure web address starting with https://." }, 403);
     }
 
     const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
