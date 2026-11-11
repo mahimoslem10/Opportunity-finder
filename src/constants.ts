@@ -1,4 +1,15 @@
-import type { Level, OpportunityStatus, OpportunityType } from './types';
+import type { DocumentCategory, Level, OpportunityStatus, OpportunityType } from './types';
+
+export const DOCUMENT_CATEGORIES: Record<DocumentCategory, string> = {
+  cv: 'CV / Resume',
+  academic: 'Academic qualifications',
+  certificate: 'Certificates',
+  employment: 'Employment documents',
+  projects: 'Projects and portfolios',
+  research: 'Research documents',
+  awards: 'Awards and achievements',
+  other: 'Other documents',
+};
 
 export const LEVEL_RANK: Record<Level, number> = {
   any: 0,

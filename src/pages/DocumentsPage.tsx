@@ -1,6 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useApp } from '../AppContext';
 import { Card, Field, Button, Message, inputClass } from '../components/ui';
+import { DOCUMENT_CATEGORIES } from '../constants';
+import type { DocumentCategory } from '../types';
 import {
   FileText,
   Upload,
@@ -8,6 +10,7 @@ import {
   Loader2,
   ExternalLink,
   FileCheck2,
+  AlertTriangle,
 } from 'lucide-react';
 
 const ACCEPTED_TYPES = '.pdf,.doc,.docx,.txt,.md,.jpg,.jpeg,.png,.webp';
@@ -20,14 +23,31 @@ function formatFileSize(bytes: number): string {
 }
 
 export function DocumentsPage() {
-  const { data, uploadDocument, deleteDocument } = useApp();
+  const { data, uploadDocument, deleteDocument, updateDocumentCategory } = useApp();
   const opportunitiesUsing = (docId: string) =>
     data.opportunities.filter((o) => o.documentIds.includes(docId)).map((o) => o.title);
+  const duplicateIds = useMemo(() => {
+    const seen = new Map<string, string>();
+    const ids = new Set<string>();
+    for (const doc of data.documents) {
+      if (!doc.contentHash) continue;
+      const firstId = seen.get(doc.contentHash);
+      if (firstId) {
+        ids.add(doc.id);
+        ids.add(firstId);
+      } else {
+        seen.set(doc.contentHash, doc.id);
+      }
+    }
+    return ids;
+  }, [data.documents]);
   const [label, setLabel] = useState('');
+  const [category, setCategory] = useState<DocumentCategory>('other');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [duplicateMsg, setDuplicateMsg] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,14 +73,19 @@ export function DocumentsPage() {
     }
     setUploading(true);
     setErrorMsg('');
-    const result = await uploadDocument(selectedFile, label.trim());
+    setDuplicateMsg('');
+    const result = await uploadDocument(selectedFile, label.trim(), category);
     setUploading(false);
     if (result.error) {
       setErrorMsg(result.error);
       return;
     }
+    if (result.duplicateOf) {
+      setDuplicateMsg(`This file is identical to "${result.duplicateOf}". It was saved as well, so you can keep both or delete one.`);
+    }
     setMsg('Document uploaded successfully.');
     setLabel('');
+    setCategory('other');
     setSelectedFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -149,7 +174,7 @@ export function DocumentsPage() {
             )}
           </div>
 
-          <div className="mt-3">
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Label (optional)">
               <input
                 value={label}
@@ -157,6 +182,19 @@ export function DocumentsPage() {
                 placeholder="e.g. My CV, LinkedIn Export, Bachelor Transcript"
                 className={inputClass}
               />
+            </Field>
+            <Field label="Category">
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value as DocumentCategory)}
+                className={inputClass}
+              >
+                {Object.entries(DOCUMENT_CATEGORIES).map(([value, name]) => (
+                  <option key={value} value={value}>
+                    {name}
+                  </option>
+                ))}
+              </select>
             </Field>
           </div>
 
@@ -176,6 +214,7 @@ export function DocumentsPage() {
           </Button>
 
           {errorMsg && <Message type="error">{errorMsg}</Message>}
+          {duplicateMsg && <Message type="error">{duplicateMsg}</Message>}
           {msg && <Message>{msg}</Message>}
         </form>
       </Card>
@@ -208,6 +247,26 @@ export function DocumentsPage() {
                         ? `Attached to ${opportunitiesUsing(doc.id).length}: ${opportunitiesUsing(doc.id).join(', ')}`
                         : 'Not attached to any opportunity yet'}
                     </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <select
+                        value={doc.category ?? 'other'}
+                        onChange={(e) => updateDocumentCategory(doc.id, e.target.value as DocumentCategory)}
+                        aria-label="Document category"
+                        className="text-xs rounded-md border border-gray-300 bg-white px-2 py-1 text-gray-700"
+                      >
+                        {Object.entries(DOCUMENT_CATEGORIES).map(([value, name]) => (
+                          <option key={value} value={value}>
+                            {name}
+                          </option>
+                        ))}
+                      </select>
+                      {duplicateIds.has(doc.id) && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-800 bg-amber-50 rounded-full px-2 py-0.5">
+                          <AlertTriangle className="w-3 h-3" />
+                          Duplicate file
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="flex gap-1.5 flex-shrink-0">

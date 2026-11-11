@@ -11,6 +11,7 @@ import type {
   Opportunity,
   Source,
   ProfileDocument,
+  DocumentCategory,
 } from './types';
 import {
   loadData,
@@ -19,6 +20,7 @@ import {
   todayISO,
   migrateOldV1,
   readFileAsDataURL,
+  sha256Hex,
   createLocalDocument,
   MAX_DOC_SIZE,
   isDefaultSource,
@@ -44,7 +46,12 @@ interface AppContextValue {
   addSource: (source: Omit<Source, 'id' | 'addedOn'>) => Source;
   deleteSource: (id: string) => void;
   scrapeSource: (source: Source) => Promise<{ found: number; duplicates: number; checkedAt?: string; error?: string }>;
-  uploadDocument: (file: File, label: string) => Promise<{ error?: string }>;
+  uploadDocument: (
+    file: File,
+    label: string,
+    category: DocumentCategory
+  ) => Promise<{ error?: string; duplicateOf?: string }>;
+  updateDocumentCategory: (id: string, category: DocumentCategory) => void;
   deleteDocument: (id: string) => void;
   exportData: () => string;
   importData: (json: string) => number;
@@ -269,28 +276,45 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const uploadDocument = useCallback(
     async (
       file: File,
-      label: string
-    ): Promise<{ error?: string }> => {
+      label: string,
+      category: DocumentCategory
+    ): Promise<{ error?: string; duplicateOf?: string }> => {
       if (file.size > MAX_DOC_SIZE) {
         return { error: `File is too large. Maximum size is ${MAX_DOC_SIZE / 1024 / 1024} MB for local storage.` };
       }
       const docId = generateId();
       let dataUrl: string;
+      let contentHash: string;
       try {
-        dataUrl = await readFileAsDataURL(file);
+        [dataUrl, contentHash] = await Promise.all([readFileAsDataURL(file), sha256Hex(file)]);
       } catch {
         return { error: 'Could not read the file. Please try again.' };
       }
-      const doc: ProfileDocument = createLocalDocument(file, docId, dataUrl);
-      doc.label = label || file.name;
+      const duplicate = data.documents.find((d) => d.contentHash === contentHash);
+      const doc: ProfileDocument = {
+        ...createLocalDocument(file, docId, dataUrl),
+        label: label || file.name,
+        category,
+        contentHash,
+      };
       const next: AppData = { ...data, documents: [...data.documents, doc] };
       if (!saveData(next)) {
         return { error: 'Your browser has no room left for this file. Delete some documents or upload a smaller one.' };
       }
       setData(next);
-      return {};
+      return duplicate ? { duplicateOf: duplicate.label } : {};
     },
     [data]
+  );
+
+  const updateDocumentCategory = useCallback(
+    (id: string, category: DocumentCategory) => {
+      persist((prev) => ({
+        ...prev,
+        documents: prev.documents.map((d) => (d.id === id ? { ...d, category } : d)),
+      }));
+    },
+    [persist]
   );
 
   const deleteDocument = useCallback(
@@ -367,6 +391,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     deleteSource,
     scrapeSource,
     uploadDocument,
+    updateDocumentCategory,
     deleteDocument,
     exportData,
     importData,

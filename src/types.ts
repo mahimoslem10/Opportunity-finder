@@ -78,7 +78,19 @@ export interface ProfileDocument {
   fileUrl: string;
   fileType: string;
   uploadedOn: string;
+  category?: DocumentCategory;
+  contentHash?: string;
 }
+
+export type DocumentCategory =
+  | 'cv'
+  | 'academic'
+  | 'certificate'
+  | 'employment'
+  | 'projects'
+  | 'research'
+  | 'awards'
+  | 'other';
 
 export interface RuleResult {
   bin: Bin;
