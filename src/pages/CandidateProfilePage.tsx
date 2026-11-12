@@ -19,10 +19,7 @@ import {
   EyeOff,
 } from 'lucide-react';
 import { useApp } from '../AppContext';
-import { Card, Button, Message, inputClass, textareaClass, selectClass, Tag } from '../components/ui';
-import { loadAISettings } from '../ai/storage';
-import { isAIConfigured } from '../ai/aiClient';
-import type { AISettings } from '../ai/storage';
+import { Card, Button, Message, textareaClass, selectClass, Tag } from '../components/ui';
 import {
   loadCandidateProfile,
   saveCandidateProfile,
@@ -86,12 +83,6 @@ function buildSummary(claims: ExtractedClaim[]): CandidateProfileSummary {
   };
 }
 
-function fileFromDoc(doc: { fileUrl: string; fileName: string; fileType: string }): File | null {
-  // We cannot reconstruct a File from a data URL reliably for re-extraction,
-  // but we can fetch the data URL back into a Blob.
-  return null;
-}
-
 export function CandidateProfilePage() {
   const { data } = useApp();
   const [profile, setProfile] = useState<CandidateProfileData>(() => loadCandidateProfile());
@@ -102,8 +93,6 @@ export function CandidateProfilePage() {
   const [expandedSections, setExpandedSections] = useState<Set<ClaimCategory>>(new Set(['education', 'experience']));
   const [filterVerification, setFilterVerification] = useState<ClaimVerification | 'all'>('all');
   const [showRejected, setShowRejected] = useState(false);
-  const aiSettings = useMemo(() => loadAISettings(), []);
-
   useEffect(() => {
     saveCandidateProfile(profile);
   }, [profile]);
@@ -222,14 +211,6 @@ export function CandidateProfilePage() {
 
   const summary = useMemo(() => buildSummary(effectiveProfile.claims), [effectiveProfile.claims]);
 
-  const filteredClaims = useMemo(() => {
-    return effectiveProfile.claims.filter((c) => {
-      if (filterVerification !== 'all' && c.verification !== filterVerification) return false;
-      if (!showRejected && c.verification === 'rejected') return false;
-      return true;
-    });
-  }, [effectiveProfile.claims, filterVerification, showRejected]);
-
   const stats = useMemo(() => {
     const total = effectiveProfile.claims.length;
     const approved = effectiveProfile.claims.filter((c) => c.verification === 'approved').length;
@@ -261,8 +242,6 @@ export function CandidateProfilePage() {
     }
     return missing;
   }, [effectiveProfile.claims]);
-
-  const aiConfigured = isAIConfigured(aiSettings as AISettings);
 
   return (
     <div className="space-y-5">
@@ -493,7 +472,6 @@ export function CandidateProfilePage() {
                           onDelete={() => handleDeleteClaim(claim.id)}
                           onReclassify={(c) => handleReclassify(claim.id, c)}
                           allClaims={effectiveProfile.claims}
-                          aiConfigured={aiConfigured}
                         />
                       ))}
                     </div>
@@ -578,7 +556,6 @@ interface ClaimRowProps {
   onDelete: () => void;
   onReclassify: (c: ClaimCategory) => void;
   allClaims: ExtractedClaim[];
-  aiConfigured: boolean;
 }
 
 function ClaimRow({
@@ -591,7 +568,6 @@ function ClaimRow({
   onDelete,
   onReclassify,
   allClaims,
-  aiConfigured,
 }: ClaimRowProps) {
   const [editText, setEditText] = useState(claim.text);
   const [showEvidence, setShowEvidence] = useState(false);
