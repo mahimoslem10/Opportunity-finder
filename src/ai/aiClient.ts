@@ -67,18 +67,19 @@ export function buildPrompt(profile: AIProfileCard, opp: AIOpportunityPayload): 
   return lines.join('\n');
 }
 
-export function deriveModelsURL(endpoint: string): string {
-  const url = endpoint.trim().replace(/\/+$/, '');
-  if (url.endsWith('/chat/completions')) {
-    return url.replace(/\/chat\/completions$/, '/models');
-  }
-  if (url.endsWith('/chat')) {
-    return url.replace(/\/chat$/, '/models');
-  }
-  if (url.endsWith('/completions')) {
-    return url.replace(/\/completions$/, '/models');
-  }
-  return url + '/models';
+function normalizeBaseURL(endpoint: string): string {
+  return endpoint
+    .trim()
+    .replace(/\/+$/, '')
+    .replace(/\/(chat\/completions|chat|completions|models)$/, '');
+}
+
+function deriveChatURL(endpoint: string): string {
+  return normalizeBaseURL(endpoint) + '/chat/completions';
+}
+
+function deriveModelsURL(endpoint: string): string {
+  return normalizeBaseURL(endpoint) + '/models';
 }
 
 export async function fetchModels(settings: AISettings): Promise<string[]> {
@@ -105,7 +106,7 @@ export async function fetchModels(settings: AISettings): Promise<string[]> {
     throw new Error('Model list response was not in expected format. You can still type a model name manually.');
   }
   return models
-    .map((m: Record<string, unknown>) => String(m?.id ?? m?.name ?? ''))
+    .map((m: Record<string, unknown>) => String(m?.id ?? m?.name ?? '').replace(/^models\//, ''))
     .filter(Boolean)
     .sort();
 }
@@ -120,10 +121,10 @@ export async function callAIFitCheck(
     model: settings.model || 'gpt-4o-mini',
     messages: [{ role: 'user', content: prompt }],
     temperature: 0.3,
-    max_tokens: 200,
+    max_tokens: 2048,
   };
 
-  const res = await fetch(settings.endpoint, {
+  const res = await fetch(deriveChatURL(settings.endpoint), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
