@@ -159,7 +159,7 @@ export async function callAIFitCheck(
 
 // --- Gemini server-side path ---
 
-const GEMINI_MODEL = 'gemini-1.5-flash';
+const GEMINI_MODEL = 'gemini-3.6-flash';
 
 export interface GeminiApprovalDetails {
   provider: string;
