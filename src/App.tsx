@@ -12,6 +12,8 @@ import { BackupPage } from './pages/BackupPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { GapAnalysisPage } from './pages/GapAnalysisPage';
 import { CandidateProfilePage } from './pages/CandidateProfilePage';
+import { IntelligenceDashboardPage } from './pages/IntelligenceDashboardPage';
+import { ImprovementDashboardPage } from './pages/ImprovementDashboardPage';
 
 function App() {
   return (
@@ -67,6 +69,8 @@ function Finder() {
         {view === 'settings' && <SettingsPage />}
         {view === 'gapanalysis' && <GapAnalysisPage />}
         {view === 'candidate' && <CandidateProfilePage />}
+        {view === 'intelligence' && <IntelligenceDashboardPage />}
+        {view === 'improvement' && <ImprovementDashboardPage />}
         {view === 'backup' && <BackupPage />}
       </Layout>
     </AppProvider>

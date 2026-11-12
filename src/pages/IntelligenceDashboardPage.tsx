@@ -10,12 +10,10 @@ import {
   Target,
   Sparkles,
   ChevronRight,
-  Award,
   ShieldCheck,
-  Info,
 } from 'lucide-react';
 import { useApp } from '../AppContext';
-import { Card, Tag, selectClass } from '../components/ui';
+import { Card } from '../components/ui';
 import { loadCandidateProfile } from '../candidate/storage';
 import { buildCandidateSnapshot } from '../matching/engine';
 import {
@@ -29,7 +27,7 @@ import {
 } from '../matching/ranking';
 import type { RankedOpportunity } from '../matching/types';
 import { OpportunityAssessmentView } from './OpportunityAssessmentPage';
-import { TYPE_LABELS, LEVEL_NAME } from '../constants';
+import { TYPE_LABELS } from '../constants';
 import { daysUntil } from '../rules';
 
 const ELIGIBILITY_META = {

@@ -8,14 +8,12 @@ import {
   TrendingUp,
   Target,
   ShieldCheck,
-  Award,
   Brain,
-  Sparkles,
   Info,
   Lightbulb,
   Clock,
 } from 'lucide-react';
-import { Card, Tag, Button } from '../components/ui';
+import { Card } from '../components/ui';
 import { TYPE_LABELS, LEVEL_NAME } from '../constants';
 import { daysUntil } from '../rules';
 import type { RankedOpportunity } from '../matching/types';
