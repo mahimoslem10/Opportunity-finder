@@ -298,12 +298,27 @@ export async function callGeminiFitCheck(
   const prompt = buildPersonalFitPrompt(profile, opp);
   const content = await callGemini(prompt, 'fit-check', true, approvalTokenId);
 
-  const match = content.match(/\{[\s\S]*\}/);
+  const result = parseFitResponse(content);
+  return result;
+}
+
+function parseFitResponse(content: string): AIFitResult {
+  // Strip markdown code fences if present (e.g. ```json ... ```)
+  const cleaned = content.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim();
+
+  // Try to find a JSON object in the response
+  const match = cleaned.match(/\{[\s\S]*\}/);
   if (!match) {
     throw new Error('AI response was not valid JSON');
   }
 
-  const parsed = JSON.parse(match[0]);
+  let parsed: { fit?: string; reason?: string };
+  try {
+    parsed = JSON.parse(match[0]);
+  } catch {
+    throw new Error('AI response was not valid JSON');
+  }
+
   const fit = (parsed.fit || 'weak').toLowerCase() as AIFitResult['fit'];
   const validFits = ['strong', 'partial', 'weak'];
   if (!validFits.includes(fit)) {

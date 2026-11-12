@@ -97,6 +97,7 @@ async function callGemini(
     ],
     generationConfig: {
       maxOutputTokens: MAX_TOKENS,
+      responseMimeType: "application/json",
     },
   };
 
@@ -129,8 +130,13 @@ async function callGemini(
     }
 
     const data = await res.json();
-    const content: string =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+    // Gemini 3.6+ may return multiple parts (thoughts + answer). Concatenate all
+    // text parts to avoid losing content, then the caller extracts JSON from it.
+    const parts: unknown[] = data?.candidates?.[0]?.content?.parts ?? [];
+    const content = parts
+      .map((p) => (p && typeof p === "object" && "text" in p ? String((p as { text: unknown }).text) : ""))
+      .filter(Boolean)
+      .join("\n");
 
     return content;
   } finally {
