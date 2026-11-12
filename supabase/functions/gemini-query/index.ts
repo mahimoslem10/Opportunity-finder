@@ -96,7 +96,6 @@ async function callGemini(
       },
     ],
     generationConfig: {
-      temperature: 0.3,
       maxOutputTokens: MAX_TOKENS,
     },
   };
@@ -113,7 +112,20 @@ async function callGemini(
 
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      throw new Error(`Gemini error (HTTP ${res.status}): ${text.slice(0, 200)}`);
+      console.error("gemini api error", res.status, text.slice(0, 300));
+      let userMessage: string;
+      if (res.status === 404) {
+        userMessage = `The model "${GEMINI_MODEL}" was not found. It may have been renamed or retired.`;
+      } else if (res.status === 403) {
+        userMessage = "The Gemini API key is invalid or does not have access to this model.";
+      } else if (res.status === 429) {
+        userMessage = "The free-tier rate limit was reached. Please wait a minute and try again.";
+      } else if (res.status === 400) {
+        userMessage = "Gemini rejected the request. The model may not support this API version.";
+      } else {
+        userMessage = `Gemini returned an error (HTTP ${res.status}). Please try again.`;
+      }
+      throw new Error(userMessage);
     }
 
     const data = await res.json();
@@ -218,7 +230,11 @@ Deno.serve(async (req: Request) => {
       provider: "gemini",
     });
   } catch (err) {
-    // Generic error to the client — no key or stack trace leaked.
+    // Pass through user-facing errors from callGemini; hide internal details for unexpected errors.
+    const message = err instanceof Error ? err.message : "";
+    if (message && !message.includes("could not be completed")) {
+      return json({ error: message }, 500);
+    }
     return json(
       { error: "The AI request could not be completed. Please try again." },
       500

@@ -56,6 +56,13 @@ const DEFAULT_SOURCES: Source[] = [
     type: 'webpage',
     addedOn: '2026-10-16',
   },
+  {
+    id: '00000000-0000-0000-0000-000000000006',
+    name: 'Scholarships.com',
+    url: 'https://www.scholarships.com',
+    type: 'webpage',
+    addedOn: '2026-11-12',
+  },
 ];
 
 const DEFAULT_DATA: AppData = {
