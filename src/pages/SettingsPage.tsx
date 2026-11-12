@@ -173,6 +173,9 @@ export function SettingsPage() {
             <Power className="w-4 h-4 text-gray-500" />
             <span className="text-sm font-medium text-gray-700">
               AI {settings.enabled ? 'enabled' : 'disabled'}
+              {settings.enabled && (
+                <span className="text-gray-500"> · using {isGemini ? 'Gemini' : 'OpenAI-compatible'}</span>
+              )}
             </span>
           </div>
         </div>
