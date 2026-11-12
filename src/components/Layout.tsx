@@ -10,6 +10,7 @@ import {
   Telescope,
   Settings,
   Target,
+  UserCircle,
   LogOut,
 } from 'lucide-react';
 import { useAuth } from '@/AuthContext';
@@ -23,6 +24,7 @@ export type ViewName =
   | 'archive'
   | 'sources'
   | 'documents'
+  | 'candidate'
   | 'backup'
   | 'settings'
   | 'gapanalysis';
@@ -40,6 +42,7 @@ const NAV_ITEMS: NavItem[] = [
   { view: 'archive', label: 'Archive', icon: Archive },
   { view: 'sources', label: 'Sources', icon: Link2 },
   { view: 'documents', label: 'Documents', icon: FolderOpen },
+  { view: 'candidate', label: 'Candidate', icon: UserCircle },
   { view: 'settings', label: 'Settings', icon: Settings },
   { view: 'gapanalysis', label: 'Gap Analysis', icon: Target },
   { view: 'backup', label: 'Backup', icon: DatabaseBackup },
