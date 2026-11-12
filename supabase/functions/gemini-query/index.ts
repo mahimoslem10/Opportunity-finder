@@ -13,7 +13,7 @@ const corsHeaders = {
 
 const GEMINI_MODEL = "gemini-3.6-flash";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
-const MAX_TOKENS = 200;
+const MAX_TOKENS = 2048;
 const TIMEOUT_MS = 15_000;
 
 type Role = "user" | "model";
@@ -137,6 +137,12 @@ async function callGemini(
       .map((p) => (p && typeof p === "object" && "text" in p ? String((p as { text: unknown }).text) : ""))
       .filter(Boolean)
       .join("\n");
+
+    const finishReason = data?.candidates?.[0]?.finishReason ?? "unknown";
+    if (!content.trim()) {
+      console.error("gemini empty response", finishReason);
+      throw new Error(`Gemini returned no answer (reason: ${finishReason}). Please try again.`);
+    }
 
     return content;
   } finally {
