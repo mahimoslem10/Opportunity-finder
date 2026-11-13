@@ -13,6 +13,7 @@ import {
   UserCircle,
   Brain,
   TrendingUp,
+  Radar,
   LogOut,
 } from 'lucide-react';
 import { useAuth } from '@/AuthContext';
@@ -29,6 +30,7 @@ export type ViewName =
   | 'candidate'
   | 'intelligence'
   | 'improvement'
+  | 'discovery'
   | 'backup'
   | 'settings'
   | 'gapanalysis';
@@ -48,6 +50,7 @@ const NAV_ITEMS: NavItem[] = [
   { view: 'documents', label: 'Documents', icon: FolderOpen },
   { view: 'candidate', label: 'Candidate', icon: UserCircle },
   { view: 'intelligence', label: 'Intelligence', icon: Brain },
+  { view: 'discovery', label: 'Discover', icon: Radar },
   { view: 'improvement', label: 'Improve', icon: TrendingUp },
   { view: 'settings', label: 'Settings', icon: Settings },
   { view: 'gapanalysis', label: 'Gap Analysis', icon: Target },

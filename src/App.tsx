@@ -14,6 +14,7 @@ import { GapAnalysisPage } from './pages/GapAnalysisPage';
 import { CandidateProfilePage } from './pages/CandidateProfilePage';
 import { IntelligenceDashboardPage } from './pages/IntelligenceDashboardPage';
 import { ImprovementDashboardPage } from './pages/ImprovementDashboardPage';
+import { DiscoveryPage } from './pages/DiscoveryPage';
 
 function App() {
   return (
@@ -44,8 +45,8 @@ function AuthGate() {
 
 function Finder() {
   const [view, setView] = useState<ViewName>(() => {
-    const saved = localStorage.getItem('oppFinder.lastView') as ViewName | null;
-    return saved && saved !== 'add' ? saved : 'dashboard';
+    const saved = localStorage.getItem('oppFinder.lastView');
+    return (saved && saved !== 'add' ? saved : 'dashboard') as ViewName;
   });
 
   useEffect(() => {
@@ -71,6 +72,7 @@ function Finder() {
         {view === 'candidate' && <CandidateProfilePage />}
         {view === 'intelligence' && <IntelligenceDashboardPage />}
         {view === 'improvement' && <ImprovementDashboardPage />}
+        {view === 'discovery' && <DiscoveryPage />}
         {view === 'backup' && <BackupPage />}
       </Layout>
     </AppProvider>
