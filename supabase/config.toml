@@ -6,3 +6,6 @@ verify_jwt = false
 
 [functions.gemini-query]
 verify_jwt = true
+
+[functions.run-discovery]
+verify_jwt = true
